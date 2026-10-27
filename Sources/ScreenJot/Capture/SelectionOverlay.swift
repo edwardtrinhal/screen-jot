@@ -134,7 +134,16 @@ final class SelectionView: NSView {
         needsDisplay = true
     }
 
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
     override func mouseEntered(with event: NSEvent) { updateCursor() }
+
+    override func mouseExited(with event: NSEvent) {
+        guard dragStart == nil else { return }
+        mouse = nil
+        hovered = nil
+        needsDisplay = true
+    }
 
     override func mouseDown(with event: NSEvent) {
         let p = globalPoint(event)

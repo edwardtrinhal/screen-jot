@@ -11,8 +11,6 @@ public enum MovieToGIF {
         guard let track = try await asset.loadTracks(withMediaType: .video).first else {
             throw MovieToGIFError.conversionFailed("no video track")
         }
-        let size = try await track.load(.naturalSize)
-        let width = Int(size.width), height = Int(size.height)
         let duration = max(totalDuration, CMTimeGetSeconds(try await asset.load(.duration)))
         let estimatedFrames = max(1, Int(duration * Double(fps)))
         let paletteStride = max(1, estimatedFrames / 24)
@@ -30,7 +28,13 @@ public enum MovieToGIF {
         let palette = builder.build(maxColors: 255)
 
         // Pass 2: encode with real timing.
-        let encoder = GIFEncoder(width: width, height: height, palette: palette)
+        var encoderStorage: GIFEncoder?
+        func encoder(for image: BGRAImage) -> GIFEncoder {
+            if let e = encoderStorage { return e }
+            let e = GIFEncoder(width: image.width, height: image.height, palette: palette)
+            encoderStorage = e
+            return e
+        }
         var pendingImage: BGRAImage?
         var pendingStartCS = 0
         var count = 0
@@ -39,7 +43,7 @@ public enum MovieToGIF {
             if let prev = pendingImage {
                 let delay = cs - pendingStartCS
                 if delay >= 2 {
-                    encoder.addFrame(prev, delayCentiseconds: delay)
+                    encoder(for: prev).addFrame(prev, delayCentiseconds: delay)
                     pendingStartCS = cs
                 }
                 // delay < 2: this frame arrived too soon for GIF timing, drop the older one.
@@ -52,10 +56,12 @@ public enum MovieToGIF {
         if let last = pendingImage {
             let totalCS = Int((duration * 100).rounded())
             let remaining = totalCS - pendingStartCS
-            encoder.addFrame(last, delayCentiseconds: max(100 / fps, min(remaining, 3000)))
+            encoder(for: last).addFrame(last, delayCentiseconds: max(100 / fps, min(remaining, 3000)))
+        }
+        guard let encoder = encoderStorage, encoder.frameCount > 0 || pendingImage != nil else {
+            throw MovieToGIFError.conversionFailed("no frames")
         }
         let data = encoder.finish()
-        guard encoder.frameCount > 0 else { throw MovieToGIFError.conversionFailed("no frames") }
         try data.write(to: gifURL, options: .atomic)
         progress(1)
     }

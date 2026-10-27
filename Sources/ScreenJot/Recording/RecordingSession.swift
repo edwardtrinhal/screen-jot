@@ -20,7 +20,11 @@ final class RecordingSession {
     private var timer: Timer?
     private var startedAt: Date?
     private var state = State.starting
+    private var startTask: Task<Void, Never>?
     private var completion: ((RecordingOutcome) -> Void)?
+
+    /// True while ⏎ / the hotkey can still stop the recording.
+    var canStop: Bool { state == .starting || state == .recording }
 
     private enum State { case starting, recording, stopping, converting, done }
 
@@ -38,9 +42,11 @@ final class RecordingSession {
         border?.orderFrontRegardless()
         hud?.show()
 
-        Task { @MainActor in
+        startTask = Task { @MainActor [weak self] in
+            guard let self else { return }
             do {
                 let content = try await ScreenCapturer.shareableContent()
+                guard self.state == .starting, !Task.isCancelled else { return }
                 let filter: SCContentFilter
                 var sourceRect: CGRect?
                 switch selection {
@@ -56,16 +62,25 @@ final class RecordingSession {
                 let movieURL = TempFiles.url(named: "recording-\(UUID().uuidString).mov")
                 // 1x output: GIFs at Retina resolution are huge and rarely wanted.
                 let recorder = try ScreenRecorder(filter: filter, sourceRect: sourceRect, outputSize: frame.size, fps: fps, outputURL: movieURL)
-                recorder.onStreamError = { [weak self] error in self?.fail(error) }
+                recorder.onStreamError = { [weak self] error in
+                    guard let self, self.state == .starting || self.state == .recording else { return }
+                    self.fail(error)
+                }
                 self.recorder = recorder
                 try await recorder.start()
-                guard state == .starting else { return }   // cancelled while starting
-                state = .recording
-                startedAt = Date()
-                hud?.setRecording(elapsed: 0, max: maxSeconds)
-                timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in self?.tick() }
+                guard self.state == .starting, !Task.isCancelled else {
+                    // Cancelled while the stream was starting: tear it down now.
+                    await recorder.cancel()
+                    return
+                }
+                self.state = .recording
+                self.startedAt = Date()
+                self.hud?.setRecording(elapsed: 0, max: self.maxSeconds)
+                let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in self?.tick() }
+                RunLoop.main.add(timer, forMode: .common)   // keep counting while menus are open
+                self.timer = timer
             } catch {
-                fail(error)
+                if self.state == .starting { self.fail(error) }
             }
         }
     }
@@ -112,9 +127,9 @@ final class RecordingSession {
         guard state == .starting || state == .recording else { return }
         state = .done
         timer?.invalidate()
-        let recorder = self.recorder
-        Task { @MainActor in
-            await recorder?.cancel()
+        startTask?.cancel()
+        if let recorder {
+            Task { await recorder.cancel() }
         }
         finish(.cancelled)
     }
@@ -162,7 +177,9 @@ final class BorderWindow: NSWindow {
 }
 
 /// Timer + Stop button. Key so ⏎ / esc work; the global hotkeys also stop it.
-final class RecordingHUD: KeyableWindow {
+final class RecordingHUD: NSPanel {
+    override var canBecomeKey: Bool { true }
+
     private let dot = NSView()
     private let label = NSTextField(labelWithString: "")
     private let hintLabel = NSTextField(labelWithString: "")
@@ -175,12 +192,14 @@ final class RecordingHUD: KeyableWindow {
     init(onStop: @escaping () -> Void, onCancel: @escaping () -> Void) {
         self.onStop = onStop
         self.onCancel = onCancel
-        super.init(contentRect: CGRect(x: 0, y: 0, width: 300, height: 44), styleMask: .borderless, backing: .buffered, defer: false)
+        // Non-activating: takes ⏎ / esc without stealing focus from the app being recorded.
+        super.init(contentRect: CGRect(x: 0, y: 0, width: 300, height: 44), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         isOpaque = false
         backgroundColor = .clear
         hasShadow = true
         level = .floating
         isReleasedWhenClosed = false
+        hidesOnDeactivate = false
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
 
         let effect = NSVisualEffectView()
@@ -197,7 +216,7 @@ final class RecordingHUD: KeyableWindow {
 
         label.font = .monospacedDigitSystemFont(ofSize: 13, weight: .semibold)
         label.textColor = .white
-        hintLabel.attributedStringValue = HUDPanel.styled("⏎ Stop  ·  esc Cancel")
+        hintLabel.attributedStringValue = HUDPanel.styled("⏎ Stop  ·  esc Cancel  ·  ⌘⇧5 Stop anytime")
         hintLabel.font = .systemFont(ofSize: 11)
 
         stopButton.bezelStyle = .rounded
@@ -250,7 +269,6 @@ final class RecordingHUD: KeyableWindow {
     }
 
     func show() {
-        NSApp.activate(ignoringOtherApps: true)
         makeKeyAndOrderFront(nil)
         blink = Timer.scheduledTimer(withTimeInterval: 0.6, repeats: true) { [weak self] _ in
             guard let self else { return }

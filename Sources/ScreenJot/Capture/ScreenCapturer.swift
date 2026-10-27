@@ -39,6 +39,7 @@ enum ScreenCapturer {
         config.pixelFormat = kCVPixelFormatType_32BGRA
         config.colorSpaceName = CGColorSpace.sRGB
         config.captureResolution = .best
+        config.ignoreShadowsSingleWindow = true
 
         let filter: SCContentFilter
         let scale: CGFloat

@@ -27,7 +27,7 @@ final class CaptureController {
                 refreshOverlays()
             }
         case .recording:
-            recording?.stop()
+            if let recording, recording.canStop { recording.stop() } else { NSSound.beep() }
         case .capturing, .editing, .previewing:
             NSSound.beep()
         }

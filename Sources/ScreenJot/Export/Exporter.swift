@@ -22,6 +22,7 @@ enum Exporter {
             item.setData(png, forType: .png)
         }
         let rep = NSBitmapImageRep(cgImage: image)
+        rep.size = NSSize(width: CGFloat(image.width) / pointScale, height: CGFloat(image.height) / pointScale)
         if let tiff = rep.tiffRepresentation {
             item.setData(tiff, forType: .tiff)
         }

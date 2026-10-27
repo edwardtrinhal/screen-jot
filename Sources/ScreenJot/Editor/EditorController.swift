@@ -119,8 +119,8 @@ final class EditorWindow: KeyableWindow {
     }
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        // Route ⌘-combos through keyDown so we get them without a main menu.
-        if event.modifierFlags.contains(.command) {
+        // No main menu exists, so route the ⌘ combos we own through keyDown; leave the rest alone.
+        if event.modifierFlags.contains(.command), [6, 8, 1].contains(Int(event.keyCode)) {   // Z, C, S
             keyDown(with: event)
             return true
         }
