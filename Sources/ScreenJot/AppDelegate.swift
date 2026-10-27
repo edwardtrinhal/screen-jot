@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let capture = CaptureController()
     private var overrideItem: NSMenuItem!
     private var loginItem: NSMenuItem!
+    private var permissionItem: NSMenuItem!
 
     private enum HotKeyID: UInt32 { case screenshot = 1, video = 2 }
 
@@ -104,9 +105,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         loginItem.target = self
         menu.addItem(loginItem)
 
-        let perm = NSMenuItem(title: "Screen Recording Permission…", action: #selector(openPermission), keyEquivalent: "")
-        perm.target = self
-        menu.addItem(perm)
+        permissionItem = NSMenuItem(title: "Screen Recording: checking…", action: #selector(openPermission), keyEquivalent: "")
+        permissionItem.target = self
+        menu.addItem(permissionItem)
 
         menu.addItem(.separator())
 
@@ -159,5 +160,6 @@ extension AppDelegate: NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) {
         overrideItem.state = Preferences.overrideSystemShortcuts ? .on : .off
         loginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
+        permissionItem.title = Permissions.hasScreenRecording ? "Screen Recording: Granted" : "Screen Recording: Not Granted…"
     }
 }

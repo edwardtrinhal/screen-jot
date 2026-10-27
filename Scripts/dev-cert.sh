@@ -6,16 +6,26 @@
 # again. A certificate, even self-signed, gives a stable identity: "identifier + certificate leaf".
 # This does not satisfy Gatekeeper (that needs a Developer ID), it only keeps permissions stable.
 #
-# Everything lives in ~/Library/Keychains/screenjot-dev.keychain-db; delete that file to undo.
+# Everything lives in ~/Library/Keychains/screenjot-dev.keychain-db plus one entry in your
+# certificate trust settings. macOS may ask for your login password once, for the trust step.
+# Undo: security delete-keychain ~/Library/Keychains/screenjot-dev.keychain-db
 set -euo pipefail
 
 NAME="ScreenJot Dev Signing"
 KEYCHAIN="$HOME/Library/Keychains/screenjot-dev.keychain-db"
 KEYCHAIN_PASSWORD="screenjot-dev"
 
-if security find-identity -v -p codesigning "$KEYCHAIN" 2>/dev/null | grep -q "$NAME"; then
+valid() { security find-identity -v -p codesigning "$KEYCHAIN" 2>/dev/null | grep -q "\"$NAME\""; }
+
+if valid; then
     echo "$NAME"
     exit 0
+fi
+
+# A keychain without a *valid* identity (earlier script version, or a failed trust step)
+# is thrown away so we never accumulate duplicates.
+if [ -f "$KEYCHAIN" ]; then
+    security delete-keychain "$KEYCHAIN" >/dev/null 2>&1 || rm -f "$KEYCHAIN"
 fi
 
 WORK=$(mktemp -d)
@@ -44,10 +54,8 @@ openssl pkcs12 -export -legacy -out "$WORK/cert.p12" -inkey "$WORK/key.pem" -in 
  || openssl pkcs12 -export -out "$WORK/cert.p12" -inkey "$WORK/key.pem" -in "$WORK/cert.pem" \
     -name "$NAME" -passout pass:p12pass >/dev/null 2>&1
 
-if [ ! -f "$KEYCHAIN" ]; then
-    security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-    security set-keychain-settings "$KEYCHAIN"   # never auto-lock
-fi
+security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+security set-keychain-settings "$KEYCHAIN"   # never auto-lock
 security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
 security import "$WORK/cert.p12" -k "$KEYCHAIN" -P p12pass -T /usr/bin/codesign -T /usr/bin/security >/dev/null
 # Let codesign use the key without a GUI prompt.
@@ -56,4 +64,13 @@ security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN
 CURRENT=$(security list-keychains -d user | tr -d '"' | xargs)
 case "$CURRENT" in *screenjot-dev.keychain-db*) ;; *) security list-keychains -d user -s $CURRENT "$KEYCHAIN" ;; esac
 
-echo "$NAME"
+# A self-signed certificate is "not trusted" until we say so; codesign refuses untrusted identities.
+echo "Trusting the certificate for code signing (macOS may ask for your login password)…" >&2
+security add-trusted-cert -r trustRoot -p codeSign -k "$KEYCHAIN" "$WORK/cert.pem"
+
+if valid; then
+    echo "$NAME"
+else
+    echo "Certificate created but still not trusted; falling back to ad-hoc signing." >&2
+    echo "-"
+fi
