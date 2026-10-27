@@ -16,6 +16,9 @@ The dev machine has Command Line Tools but **no Xcode and no XCTest**; never add
 - `⏎` copy, `⇧⏎` Save As, `esc` cancel, everywhere.
 - GIF: 15 fps, 30 s cap, 1x scale, own encoder in `ScreenJotCore` (no deps).
 - Distribution is an unsigned DMG; keep signing/notarization behind env vars in the build script.
+- Default signing is the self-signed "ScreenJot Dev Signing" cert (`Scripts/dev-cert.sh`) so the TCC Screen
+  Recording grant survives rebuilds. Ad-hoc (`CODESIGN_IDENTITY=-`) changes identity every build → re-prompt.
+  Stale grant fix: `tccutil reset ScreenCapture app.screenjot.ScreenJot`, relaunch, grant again.
 
 ## Architecture
 - `CaptureController` is the single state machine: idle → selecting → capturing/recording → editing/previewing → idle.

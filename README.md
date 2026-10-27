@@ -49,6 +49,18 @@ Scripts/make-dmg.sh       # → build/ScreenJot-<version>.dmg
 swift run -c release ScreenJotSelfTest   # GIF encoder tests
 ```
 
+The build script signs with a self-signed "ScreenJot Dev Signing" certificate that `Scripts/dev-cert.sh`
+creates on first use in its own keychain (`~/Library/Keychains/screenjot-dev.keychain-db`). This keeps the
+app's code identity stable, so macOS remembers the Screen Recording grant across rebuilds. Set
+`CODESIGN_IDENTITY=-` for a plain ad-hoc signature instead (the permission is then re-asked after every build).
+
+If macOS keeps asking for Screen Recording although the toggle is on, the saved grant belongs to a build
+with a different signature. Reset it and grant again:
+
+```sh
+tccutil reset ScreenCapture app.screenjot.ScreenJot
+```
+
 To ship a signed and notarized build once you have a Developer ID:
 
 ```sh

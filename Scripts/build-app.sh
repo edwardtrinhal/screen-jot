@@ -1,7 +1,10 @@
 #!/bin/bash
 # Builds build/ScreenJot.app (universal, release).
-# Env: CODESIGN_IDENTITY="Developer ID Application: ..." to sign with a real certificate
-#      (default is ad-hoc). NOTARY_PROFILE=<keychain profile> to notarize after signing.
+# Signing (env CODESIGN_IDENTITY):
+#   unset  → self-signed "ScreenJot Dev Signing" cert, created on first use by Scripts/dev-cert.sh.
+#            Stable code identity, so macOS keeps the Screen Recording grant across rebuilds.
+#   "-"    → ad-hoc (identity changes every build; permission must be re-granted each time).
+#   "Developer ID Application: …" → real certificate; add NOTARY_PROFILE=<profile> to notarize.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -33,14 +36,21 @@ if [ ! -f build/AppIcon.icns ]; then
 fi
 cp build/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
-IDENTITY="${CODESIGN_IDENTITY:--}"
+IDENTITY="${CODESIGN_IDENTITY:-}"
+if [ -z "$IDENTITY" ]; then
+    IDENTITY=$(Scripts/dev-cert.sh) || IDENTITY="-"
+fi
 echo "▸ Signing with identity: $IDENTITY"
 if [ "$IDENTITY" = "-" ]; then
     codesign --force --deep --sign - --identifier app.screenjot.ScreenJot "$APP"
+elif [ "$IDENTITY" = "ScreenJot Dev Signing" ]; then
+    codesign --force --deep --sign "$IDENTITY" --keychain "$HOME/Library/Keychains/screenjot-dev.keychain-db" \
+        --identifier app.screenjot.ScreenJot "$APP"
 else
     codesign --force --deep --options runtime --timestamp --sign "$IDENTITY" --identifier app.screenjot.ScreenJot "$APP"
 fi
 codesign --verify --verbose=1 "$APP"
+codesign -d -r- "$APP" 2>&1 | grep designated || true
 
 if [ -n "${NOTARY_PROFILE:-}" ]; then
     echo "▸ Notarizing"
