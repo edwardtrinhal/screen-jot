@@ -33,10 +33,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         if !Permissions.hasScreenRecording {
-            // First call shows the system prompt; the user may need to relaunch afterwards.
-            Permissions.requestScreenRecording()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                if !Permissions.hasScreenRecording { Permissions.presentPermissionAlert() }
+            // One dialog per launch. The native prompt is unavoidable the first time: it is what
+            // registers ScreenJot in the Screen Recording list. After that macOS never shows it
+            // again, so later launches get our own alert instead.
+            if Preferences.hasRequestedScreenRecording {
+                Permissions.presentPermissionAlert()
+            } else {
+                Preferences.hasRequestedScreenRecording = true
+                Permissions.requestScreenRecording()
             }
         }
     }

@@ -7,6 +7,13 @@ enum Preferences {
         static let overrideSystemShortcuts = "overrideSystemShortcuts"
         static let lastSaveDirectory = "lastSaveDirectory"
         static let lastTarget = "lastCaptureTarget"
+        static let hasRequestedScreenRecording = "hasRequestedScreenRecording"
+    }
+
+    /// True once the native Screen Recording prompt has been triggered for this install.
+    static var hasRequestedScreenRecording: Bool {
+        get { defaults.bool(forKey: Key.hasRequestedScreenRecording) }
+        set { defaults.set(newValue, forKey: Key.hasRequestedScreenRecording) }
     }
 
     static var overrideSystemShortcuts: Bool {

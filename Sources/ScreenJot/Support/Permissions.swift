@@ -49,6 +49,9 @@ enum Permissions {
         process.standardError = FileHandle.nullDevice
         try? process.run()
         process.waitUntilExit()
+        // The record is gone, so the app is no longer listed in Settings; let the next launch
+        // trigger the native prompt again to re-register it.
+        Preferences.hasRequestedScreenRecording = false
     }
 
     static func relaunch() {
