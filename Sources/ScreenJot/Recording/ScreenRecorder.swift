@@ -128,12 +128,10 @@ final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate {
 
 enum RecordingError: LocalizedError {
     case noFrames
-    case conversionFailed(String)
 
     var errorDescription: String? {
         switch self {
         case .noFrames: return "No frames were captured."
-        case .conversionFailed(let why): return "GIF conversion failed: \(why)"
         }
     }
 }

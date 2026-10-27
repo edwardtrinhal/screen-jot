@@ -153,5 +153,13 @@ if let outPath = CommandLine.arguments.dropFirst().first {
     print("wrote sample GIF to \(outPath)")
 }
 
+print("Movie → GIF conversion")
+let sem = DispatchSemaphore(value: 0)
+Task {
+    await runMovieToGIFTest { ok, msg in check(ok, msg) }
+    sem.signal()
+}
+sem.wait()
+
 print(failures == 0 ? "ALL PASSED" : "\(failures) FAILURE(S)")
 exit(failures == 0 ? 0 : 1)

@@ -1,5 +1,6 @@
 import AppKit
 import ScreenCaptureKit
+import ScreenJotCore
 
 enum RecordingOutcome {
     case cancelled

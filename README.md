@@ -60,11 +60,11 @@ CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" NOTARY_PROFILE=
 ## Layout
 
 ```
-Sources/ScreenJotCore/     Pure Swift GIF pipeline: palette, color mapping, LZW, encoder
+Sources/ScreenJotCore/     GIF pipeline: palette, color mapping, LZW, encoder, movie → GIF
 Sources/ScreenJot/         The app
   Capture/                 Selection overlay, ScreenCaptureKit screenshots, state machine
   Editor/                  Drawing canvas and in-place editor window
-  Recording/               SCStream → .mov recorder, movie → GIF, recording HUD, GIF preview
+  Recording/               SCStream → .mov recorder, recording session/HUD, GIF preview
   Export/                  Clipboard + Save panel
   Support/                 Hotkeys, system shortcut override, permissions, prefs, helpers
 Sources/ScreenJotSelfTest/ Encoder tests (CLT has no XCTest)

@@ -1,16 +1,15 @@
 import AVFoundation
 import CoreVideo
 import Foundation
-import ScreenJotCore
 
 /// Two-pass conversion: sample frames for the palette, then encode every frame with the
 /// real inter-frame timing from the movie. Memory stays bounded to one frame at a time.
-enum MovieToGIF {
-    static func convert(movieURL: URL, to gifURL: URL, fps: Int, totalDuration: TimeInterval,
+public enum MovieToGIF {
+    public static func convert(movieURL: URL, to gifURL: URL, fps: Int, totalDuration: TimeInterval,
                         progress: @escaping (Double) -> Void) async throws {
         let asset = AVURLAsset(url: movieURL)
         guard let track = try await asset.loadTracks(withMediaType: .video).first else {
-            throw RecordingError.conversionFailed("no video track")
+            throw MovieToGIFError.conversionFailed("no video track")
         }
         let size = try await track.load(.naturalSize)
         let width = Int(size.width), height = Int(size.height)
@@ -56,7 +55,7 @@ enum MovieToGIF {
             encoder.addFrame(last, delayCentiseconds: max(100 / fps, min(remaining, 3000)))
         }
         let data = encoder.finish()
-        guard encoder.frameCount > 0 else { throw RecordingError.conversionFailed("no frames") }
+        guard encoder.frameCount > 0 else { throw MovieToGIFError.conversionFailed("no frames") }
         try data.write(to: gifURL, options: .atomic)
         progress(1)
     }
@@ -69,7 +68,7 @@ enum MovieToGIF {
         ])
         output.alwaysCopiesSampleData = false
         reader.add(output)
-        guard reader.startReading() else { throw reader.error ?? RecordingError.conversionFailed("reader failed") }
+        guard reader.startReading() else { throw reader.error ?? MovieToGIFError.conversionFailed("reader failed") }
         var first: CMTime?
         while let sample = output.copyNextSampleBuffer() {
             guard let pb = sample.imageBuffer else { continue }
@@ -79,7 +78,7 @@ enum MovieToGIF {
             if !body(bgraImage(from: pb), seconds) { break }
         }
         reader.cancelReading()
-        if reader.status == .failed { throw reader.error ?? RecordingError.conversionFailed("decode failed") }
+        if reader.status == .failed { throw reader.error ?? MovieToGIFError.conversionFailed("decode failed") }
     }
 
     private static func bgraImage(from pb: CVPixelBuffer) -> BGRAImage {
@@ -93,5 +92,15 @@ enum MovieToGIF {
             initialized = stride * height
         }
         return BGRAImage(width: width, height: height, bytesPerRow: stride, pixels: pixels)
+    }
+}
+
+public enum MovieToGIFError: LocalizedError {
+    case conversionFailed(String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .conversionFailed(let why): return "GIF conversion failed: \(why)"
+        }
     }
 }

@@ -21,7 +21,7 @@ The dev machine has Command Line Tools but **no Xcode and no XCTest**; never add
 - `CaptureController` is the single state machine: idle → selecting → capturing/recording → editing/previewing → idle.
 - Overlays (`OverlayWindow`, one per screen) are excluded from the SCK content filter, so capture happens *before* they close.
 - Coordinates: AppKit global (bottom-left) everywhere; `Geometry.swift` converts to Quartz / SCK display-local.
-- Recording writes H.264 to a temp `.mov` (bounded memory), then `MovieToGIF` does two passes (palette, encode) with real frame timing.
+- Recording writes H.264 to a temp `.mov` (bounded memory), then `MovieToGIF` (in ScreenJotCore, covered by the self-test) does two passes (palette, encode) with real frame timing.
 - `GIFEncoder` does inter-frame differencing + transparency and merges identical frames; `LZWEncoder` must keep the clear-flag-before-emit ordering.
 
 ## Style
