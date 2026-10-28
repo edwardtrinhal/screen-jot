@@ -77,10 +77,17 @@ CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" NOTARY_PROFILE=
 
 ## Releasing
 
-Bump `VERSION`, add a `## <version>` section to `CHANGELOG.md`, commit, then run `Scripts/release.sh`.
-It builds the DMG, tags `v<version>`, pushes, and creates a GitHub release with the DMG attached as
-`ScreenJot.dmg` (so `releases/latest/download/ScreenJot.dmg` always points at the newest build) plus
-the versioned file. The landing page in `docs/` is served by GitHub Pages and links to that URL.
+```sh
+Scripts/release.sh patch     # 0.1.1 → 0.1.2; also minor, major, or an explicit X.Y.Z
+Scripts/release.sh           # release whatever VERSION already says
+```
+
+With a bump argument the script writes `VERSION`, adds a `## <version>` section to `CHANGELOG.md` made from
+the commit subjects since the last tag, and commits. Edit `CHANGELOG.md` first if you want hand-written notes
+(then run it without an argument). Either way it then builds the DMG, tags `v<version>`, pushes, and creates a
+GitHub release with the DMG attached as `ScreenJot.dmg` (so `releases/latest/download/ScreenJot.dmg` always
+points at the newest build) plus the versioned file. The landing page in `docs/` and the in-app update check
+both follow that latest release.
 
 ## Layout
 
