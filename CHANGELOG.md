@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- Clicking anywhere outside the screenshot editor or GIF preview now copies the result and dismisses it, same as `⏎`
+- After a click-away copy, focus stays in the app you clicked instead of jumping back to the previous one
+
 ## 0.1.0
 
 First release.
