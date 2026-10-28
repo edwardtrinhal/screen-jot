@@ -70,9 +70,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = statusItem.button {
-            let image = NSImage(systemSymbolName: "scissors", accessibilityDescription: "ScreenJot")
-            image?.isTemplate = true
-            button.image = image
+            button.image = StatusIcon.make()
             button.toolTip = "ScreenJot"
         }
 
