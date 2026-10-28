@@ -3,6 +3,8 @@
 A tiny macOS menu-bar app for fast screenshots with scribbles and quick GIF recordings.
 Native Swift + AppKit, ScreenCaptureKit, no third-party dependencies, no App Store.
 
+**[Download the latest DMG](https://github.com/edwardtrinhal/screen-jot/releases/latest/download/ScreenJot.dmg)** · [website](https://edwardtrinhal.github.io/screen-jot/) · [all releases](https://github.com/edwardtrinhal/screen-jot/releases)
+
 ## Shortcuts
 
 | Key | Action |
@@ -33,7 +35,8 @@ The menu-bar icon has a toggle for this, a Launch-at-Login switch, and a shortcu
 ## Install from the DMG
 
 1. Open the DMG and drag **ScreenJot.app** to **Applications**.
-2. The build is not notarized, so on first launch right-click the app → **Open** → **Open**, or run:
+2. The build is not notarized, so macOS blocks the first launch. Open the app once, then go to
+   **System Settings › Privacy & Security**, scroll down and click **Open Anyway**. Or skip the dialog with:
    ```sh
    xattr -dr com.apple.quarantine /Applications/ScreenJot.app
    ```
@@ -69,6 +72,13 @@ CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" NOTARY_PROFILE=
 
 (`NOTARY_PROFILE` is a `notarytool store-credentials` keychain profile.)
 
+## Releasing
+
+Bump `VERSION`, add a `## <version>` section to `CHANGELOG.md`, commit, then run `Scripts/release.sh`.
+It builds the DMG, tags `v<version>`, pushes, and creates a GitHub release with the DMG attached as
+`ScreenJot.dmg` (so `releases/latest/download/ScreenJot.dmg` always points at the newest build) plus
+the versioned file. The landing page in `docs/` is served by GitHub Pages and links to that URL.
+
 ## Layout
 
 ```
@@ -80,7 +90,8 @@ Sources/ScreenJot/         The app
   Export/                  Clipboard + Save panel
   Support/                 Hotkeys, system shortcut override, permissions, prefs, helpers
 Sources/ScreenJotSelfTest/ Encoder tests (CLT has no XCTest)
-Scripts/                   Icon renderer, app bundle and DMG builders
+Scripts/                   Icon renderer, app bundle and DMG builders, release script
+docs/                      Landing page (GitHub Pages)
 ```
 
 ## License

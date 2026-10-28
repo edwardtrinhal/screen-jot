@@ -3,9 +3,12 @@ ScreenJot — first launch
 
 1. Drag ScreenJot.app into the Applications folder.
 
-2. This build is not notarized by Apple, so the first launch needs one extra step.
-   Either:  right-click ScreenJot.app → Open → Open
-   or run in Terminal:
+2. This build is not notarized by Apple, so macOS blocks the first launch.
+   Open ScreenJot.app once (it will be blocked), then go to
+       System Settings › Privacy & Security  →  scroll down  →  "Open Anyway"
+   and confirm. This is only needed once.
+
+   Or skip the dialog entirely by running in Terminal:
        xattr -dr com.apple.quarantine /Applications/ScreenJot.app
 
 3. On first launch macOS asks for Screen Recording permission.
