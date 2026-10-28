@@ -21,6 +21,7 @@ Shortcuts
   Tab   Region / Window / Full Screen       esc   Cancel
   ⏎     Copy to clipboard   ⇧⏎   Save As…
   ⌘Z    Undo drawing (screenshots)
+  Clicking anywhere else copies the result and dismisses it.
 
 While ScreenJot runs it takes over ⌘⇧4 and ⌘⇧5 from macOS. Quitting ScreenJot
 restores the native shortcuts. You can also toggle this from the menu bar icon.

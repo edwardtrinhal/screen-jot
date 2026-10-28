@@ -2,6 +2,7 @@ import AppKit
 import UniformTypeIdentifiers
 
 /// Shows the finished GIF where it was recorded. ⏎ copy, ⇧⏎ save, esc discard.
+/// Clicking anywhere else (losing key status) copies and dismisses, same as ⏎.
 final class GIFPreviewController: NSObject {
     private let window: EditorWindow
     private let hint: HUDPanel
@@ -39,11 +40,20 @@ final class GIFPreviewController: NSObject {
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         window.contentView = imageView
         window.onKey = { [weak self] action in self?.handle(action) }
+        window.onResignKey = { [weak self] in self?.focusLost() }
         window.addChildWindow(hint, ordered: .above)
         hint.attach(below: frame, on: screen)
 
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
+    }
+
+    /// See EditorController.focusLost: deferred and re-checked so the Save sheet and alerts don't trigger it.
+    private func focusLost() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, !self.busy, self.completion != nil, !self.window.isKeyWindow else { return }
+            self.handle(.copy)
+        }
     }
 
     private func handle(_ action: EditorWindow.Action) {
@@ -68,7 +78,9 @@ final class GIFPreviewController: NSObject {
                     Toast.show("Saved to \(url.deletingLastPathComponent().lastPathComponent)", on: self.screen)
                     self.finish(.saved(url))
                 } catch {
+                    self.busy = true   // the alert takes focus; don't treat that as "copy and dismiss"
                     NSAlert(error: error).runModal()
+                    self.busy = false
                 }
             }
         case .undo, .redo:

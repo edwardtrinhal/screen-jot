@@ -9,6 +9,7 @@ enum EditorOutcome {
 
 /// Floating, borderless editor placed exactly where the capture came from, with a hint
 /// pill underneath. Keyboard: draw with the mouse, ⏎ copy, ⇧⏎ save, ⌘Z/⇧⌘Z undo/redo, esc cancel.
+/// Clicking anywhere else (losing key status) copies and dismisses, same as ⏎.
 final class EditorController: NSObject {
     private let window: EditorWindow
     private let canvas: DrawingCanvasView
@@ -42,12 +43,23 @@ final class EditorController: NSObject {
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         window.contentView = canvas
         window.onKey = { [weak self] action in self?.handle(action) }
+        window.onResignKey = { [weak self] in self?.focusLost() }
         window.addChildWindow(hint, ordered: .above)
         hint.attach(below: frame, on: screen)
 
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
         window.makeFirstResponder(canvas)
+    }
+
+    /// Losing focus means the user moved on: copy the result so nothing is lost.
+    /// Deferred so the window is never torn down inside AppKit's key-window bookkeeping,
+    /// and re-checked because the Save sheet and alerts briefly take key status too (`busy`).
+    private func focusLost() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, !self.busy, self.completion != nil, !self.window.isKeyWindow else { return }
+            self.copyImage()
+        }
     }
 
     private func handle(_ action: EditorWindow.Action) {
@@ -82,7 +94,9 @@ final class EditorController: NSObject {
                 Toast.show("Saved to \(url.deletingLastPathComponent().lastPathComponent)", on: self.screen)
                 self.finish(.saved(url))
             } catch {
+                self.busy = true   // the alert takes focus; don't treat that as "copy and dismiss"
                 NSAlert(error: error).runModal()
+                self.busy = false
             }
         }
     }
@@ -100,6 +114,12 @@ final class EditorController: NSObject {
 final class EditorWindow: KeyableWindow {
     enum Action { case cancel, copy, save, undo, redo }
     var onKey: ((Action) -> Void)?
+    var onResignKey: (() -> Void)?
+
+    override func resignKey() {
+        super.resignKey()
+        onResignKey?()
+    }
 
     override func keyDown(with event: NSEvent) {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)

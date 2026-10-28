@@ -164,6 +164,8 @@ final class CaptureController {
     // MARK: Helpers
 
     private func restorePreviousApp() {
+        // If the user already clicked into another app (which auto-copied the result), leave them there.
+        guard NSApp.isActive else { return }
         guard let app = previousApp, app.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return }
         app.activate()
     }

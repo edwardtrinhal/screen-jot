@@ -16,6 +16,7 @@ Native Swift + AppKit, ScreenCaptureKit, no third-party dependencies, no App Sto
 | `⏎` | Copy result to the clipboard |
 | `⇧⏎` | Save As… |
 | `esc` | Cancel |
+| click elsewhere | Copy to the clipboard and dismiss (same as `⏎`) |
 | `⌘Z` / `⇧⌘Z` | Undo / redo a stroke (screenshot editor) |
 | `⇧` while dragging | Constrain the region to a square |
 
