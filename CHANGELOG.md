@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2
+
+- Let release.sh bump the version and generate the changelog section
+- Add Check for Updates against the latest GitHub release
+- Draw the menu-bar icon from the app icon's glyph instead of the scissors symbol
+
 ## 0.1.1
 
 - Clicking anywhere outside the screenshot editor or GIF preview now copies the result and dismisses it, same as `⏎`
