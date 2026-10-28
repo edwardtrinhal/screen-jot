@@ -9,6 +9,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var overrideItem: NSMenuItem!
     private var loginItem: NSMenuItem!
     private var permissionItem: NSMenuItem!
+    private var updateItem: NSMenuItem!
+    private var availableUpdate: (version: String, download: URL)?
 
     private enum HotKeyID: UInt32 { case screenshot = 1, video = 2 }
 
@@ -18,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         TempFiles.cleanUpOldFiles()
         setupStatusItem()
         installSignalHandler()
+        scheduleBackgroundUpdateChecks()
 
         hotKeys.onHotKey = { [weak self] id in
             guard let self, let key = HotKeyID(rawValue: id) else { return }
@@ -109,10 +112,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
 
-        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev"
-        let about = NSMenuItem(title: "ScreenJot \(version)", action: nil, keyEquivalent: "")
+        let about = NSMenuItem(title: "ScreenJot \(UpdateChecker.currentVersion)", action: nil, keyEquivalent: "")
         about.isEnabled = false
         menu.addItem(about)
+
+        updateItem = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
+        updateItem.target = self
+        menu.addItem(updateItem)
 
         let quit = NSMenuItem(title: "Quit ScreenJot", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         quit.keyEquivalentModifierMask = [.command]
@@ -151,6 +157,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openPermission() {
         Permissions.openScreenRecordingSettings()
+    }
+
+    // MARK: - Updates
+
+    @objc private func checkForUpdates() {
+        if let update = availableUpdate {
+            // Background check already found it: go straight to the download.
+            NSWorkspace.shared.open(update.download)
+            return
+        }
+        updateItem.isEnabled = false
+        updateItem.title = "Checking for Updates…"
+        Task { @MainActor in
+            await UpdateChecker.checkAndPresent()
+            updateItem.isEnabled = true
+            updateItem.title = "Check for Updates…"
+        }
+    }
+
+    /// Quiet check shortly after launch and once a day after that. A newer version is only
+    /// surfaced as a menu item, never as a dialog; no network traffic besides this.
+    private func scheduleBackgroundUpdateChecks() {
+        func run() {
+            Task { @MainActor in
+                if case .available(let version, let download) = await UpdateChecker.check() {
+                    availableUpdate = (version, download)
+                    updateItem.title = "Download ScreenJot \(version)…"
+                }
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 20) { run() }
+        Timer.scheduledTimer(withTimeInterval: 24 * 60 * 60, repeats: true) { _ in run() }
     }
 }
 

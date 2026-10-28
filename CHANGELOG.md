@@ -4,6 +4,8 @@
 
 - Clicking anywhere outside the screenshot editor or GIF preview now copies the result and dismisses it, same as `⏎`
 - After a click-away copy, focus stays in the app you clicked instead of jumping back to the previous one
+- Menu-bar icon now matches the app icon
+- "Check for Updates…" in the menu; a quiet daily check offers the download when a newer release exists
 
 ## 0.1.0
 

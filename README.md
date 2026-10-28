@@ -26,7 +26,9 @@ Native Swift + AppKit, ScreenCaptureKit, no third-party dependencies, no App Sto
 Recordings are 15 fps at 1x scale and capped at 30 seconds.
 
 While ScreenJot is running it disables the native `⌘⇧4` / `⌘⇧5` bindings; quitting restores them.
-The menu-bar icon has a toggle for this, a Launch-at-Login switch, and a shortcut to the permission pane.
+The menu-bar icon has a toggle for this, a Launch-at-Login switch, a shortcut to the permission pane,
+and **Check for Updates…**, which compares the running version with the latest GitHub release and offers the DMG.
+There is no auto-install: quit ScreenJot and drag the new app over the old one.
 
 ## Requirements
 
